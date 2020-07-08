@@ -58,6 +58,10 @@ public:
         Kinematics::State kinematics_estimated;
         uint64_t timestamp;
 
+        CarState()
+        {
+        }
+
         CarState(float speed_val, int gear_val, float rpm_val, float maxrpm_val, bool handbrake_val, 
             const Kinematics::State& kinematics_estimated_val, uint64_t timestamp_val)
             : speed(speed_val), gear(gear_val), rpm(rpm_val), maxrpm(maxrpm_val), handbrake(handbrake_val), 
@@ -78,20 +82,13 @@ public:
         initialize(vehicle_setting, sensor_factory, state, environment);
     }
 
-    //default implementation so derived class doesn't have to call on VehicleApiBase
-    virtual void reset() override
-    {
-        VehicleApiBase::reset();
-
-        //reset sensors last after their ground truth has been reset
-        getSensors().reset();
-    }
     virtual void update() override
     {
         VehicleApiBase::update();
 
         getSensors().update();
     }
+
     void reportState(StateReporter& reporter) override
     {
         getSensors().reportState(reporter);
@@ -134,14 +131,22 @@ public:
     }
 
     virtual void setCarControls(const CarControls& controls) = 0;
-    virtual CarState getCarState() const = 0;
-    virtual const CarApiBase::CarControls& getCarControls() const = 0;
+    virtual void updateCarState(const CarState& state) = 0;
+    virtual const CarState& getCarState() const = 0;
+    virtual const CarControls& getCarControls() const = 0;
 
     virtual ~CarApiBase() = default;
 
     std::shared_ptr<const SensorFactory> sensor_factory_;
     SensorCollection sensors_; //maintains sensor type indexed collection of sensors
     vector<unique_ptr<SensorBase>> sensor_storage_; //RAII for created sensors
+
+protected:
+    virtual void resetImplementation() override
+    {
+        //reset sensors last after their ground truth has been reset
+        getSensors().reset();
+    }
 };
 
 
